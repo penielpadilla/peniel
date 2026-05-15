@@ -1,0 +1,433 @@
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { 
+  Plus, 
+  Trash2, 
+  Printer, 
+  Wrench, 
+  Truck, 
+  Package, 
+  MoreHorizontal, 
+  FileText, 
+  User, 
+  Info, 
+  Settings, 
+  Camera, 
+  Save, 
+  FolderOpen, 
+  X,
+  CheckCircle2,
+  AlertCircle,
+  ClipboardList,
+  FilePlus
+} from 'lucide-react';
+
+// Componente de Tabla separado para evitar pÇrdida de foco al escribir
+const TableSection = ({ title, icon: Icon, items, setter, themeColor, showPartNumber = false }) => {
+  const addItem = () => setter(prev => [...prev, { 
+    id: Date.now(), 
+    concepto: '', 
+    costo: 0, 
+    cantidad: 1, 
+    noParte: '' 
+  }]);
+
+  const removeItem = (id) => setter(prev => prev.filter(item => item.id !== id));
+
+  const updateItem = (id, field, value) => {
+    setter(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
+  };
+
+  const calculateSubtotal = () => items.reduce((acc, item) => acc + (Number(item.costo) * Number(item.cantidad)), 0);
+
+  return (
+    <div className="mb-4 bg-white rounded-lg border border-slate-200 overflow-hidden print:border-slate-300">
+      <div className={`flex justify-between items-center px-4 py-1.5 ${themeColor} text-white print:bg-slate-100 print:text-slate-800 print:border-b`}>
+        <div className="flex items-center gap-2">
+          <Icon size={14} className="print:hidden" />
+          <h2 className="font-bold text-[10px] uppercase tracking-wider">{title}</h2>
+        </div>
+        <button onClick={addItem} className="p-1 hover:bg-white/20 rounded-full print:hidden">
+          <Plus size={16} />
+        </button>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-[11px] min-w-[600px] md:min-w-0">
+          <thead>
+            <tr className="bg-slate-50 text-slate-500 text-[9px] uppercase font-bold border-b print:bg-white">
+              {showPartNumber && <th className="px-4 py-2 text-left w-24">No. Parte</th>}
+              <th className="px-4 py-2 text-left">Concepto</th>
+              <th className="px-4 py-2 text-center w-24">Costo Unit.</th>
+              <th className="px-4 py-2 text-center w-16">Cant.</th>
+              <th className="px-4 py-2 text-right w-24">Total</th>
+              <th className="px-2 w-8 print:hidden"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {items.map((item) => (
+              <tr key={item.id}>
+                {showPartNumber && (
+                  <td className="px-4 py-1.5">
+                    <input 
+                      type="text" 
+                      value={item.noParte || ''} 
+                      onChange={(e) => updateItem(item.id, 'noParte', e.target.value)}
+                      className="w-full bg-transparent border-none focus:ring-0 p-0 text-slate-600 font-mono" 
+                      placeholder="P/N..." 
+                    />
+                  </td>
+                )}
+                <td className="px-4 py-1.5">
+                  <input 
+                    type="text" 
+                    value={item.concepto} 
+                    onChange={(e) => updateItem(item.id, 'concepto', e.target.value)}
+                    className="w-full bg-transparent border-none focus:ring-0 p-0" 
+                    placeholder="Escriba aqu°..." 
+                  />
+                </td>
+                <td className="px-4 py-1.5 text-center">
+                  <input 
+                    type="number" 
+                    value={item.costo} 
+                    onChange={(e) => updateItem(item.id, 'costo', e.target.value)}
+                    className="w-full bg-transparent border-none focus:ring-0 text-center p-0" 
+                  />
+                </td>
+                <td className="px-4 py-1.5 text-center">
+                  <input 
+                    type="number" 
+                    value={item.cantidad} 
+                    onChange={(e) => updateItem(item.id, 'cantidad', e.target.value)}
+                    className="w-full bg-transparent border-none focus:ring-0 text-center p-0" 
+                  />
+                </td>
+                <td className="px-4 py-1.5 text-right font-medium text-slate-600">
+                  ${(item.costo * item.cantidad).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                </td>
+                <td className="px-2 text-center print:hidden">
+                  <button onClick={() => removeItem(item.id)} className="text-slate-300 hover:text-red-500">
+                    <Trash2 size={12} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="bg-slate-50/30 px-4 py-2 border-t font-bold text-right print:bg-white">
+        <span className="text-[9px] text-slate-400 mr-2 uppercase tracking-tighter">SUBTOTAL {title}</span>
+        <span className="text-slate-800">${calculateSubtotal().toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+      </div>
+    </div>
+  );
+};
+
+const App = () => {
+  const INITIAL_VIATICOS = [
+    { id: 1, concepto: 'TECNICO POR DIA', costo: 0, cantidad: 1 },
+    { id: 2, concepto: 'HOTEL', costo: 0, cantidad: 1 },
+    { id: 3, concepto: 'COMIDA POR DIA', costo: 0, cantidad: 1 },
+    { id: 4, concepto: 'CASETAS', costo: 0, cantidad: 1 },
+    { id: 5, concepto: 'GASOLINA', costo: 0, cantidad: 1 },
+  ];
+
+  const INITIAL_METADATA = () => ({
+    cliente: '',
+    proyecto: '',
+    atencion: '',
+    equipoNombre: '',
+    equipoModelo: '',
+    equipoSerie: '',
+    equipoFoto: null,
+    descripcionTrabajo: '',
+    fecha: new Date().toISOString().split('T')[0],
+    folio: `COMINSA-${Math.floor(1000 + Math.random() * 9000)}`,
+    empresa: 'COMINSA S.A. de C.V.',
+    contacto: 'ventas@cominsa.com.mx'
+  });
+
+  // --- ESTADOS ---
+  const [viaticos, setViaticos] = useState(INITIAL_VIATICOS);
+  const [insumos, setInsumos] = useState([]);
+  const [refacciones, setRefacciones] = useState([]);
+  const [otros, setOtros] = useState([]);
+  const [metadata, setMetadata] = useState(INITIAL_METADATA());
+  const [logoError, setLogoError] = useState(false);
+
+  const [savedQuotes, setSavedQuotes] = useState([]);
+  const [showOpenModal, setShowOpenModal] = useState(false);
+  const [notification, setNotification] = useState(null);
+  const fileInputRef = useRef(null);
+
+  // --- CARGA INICIAL ---
+  useEffect(() => {
+    const stored = localStorage.getItem('cominsa_quotes');
+    if (stored) setSavedQuotes(JSON.parse(stored));
+  }, []);
+
+  // --- FUNCIONES ---
+  const showNotif = (msg, type = 'success') => {
+    setNotification({ msg, type });
+    setTimeout(() => setNotification(null), 3000);
+  };
+
+  const handleNew = () => {
+    if (window.confirm("®Est†s seguro de crear un nuevo archivo? Se perder†n los cambios no guardados.")) {
+      setViaticos(INITIAL_VIATICOS);
+      setInsumos([]);
+      setRefacciones([]);
+      setOtros([]);
+      setMetadata(INITIAL_METADATA());
+      setLogoError(false);
+      showNotif('Nuevo archivo generado');
+    }
+  };
+
+  const handleSave = () => {
+    if (!metadata.cliente) {
+      showNotif('Por favor asigna un nombre de cliente antes de guardar', 'error');
+      return;
+    }
+    const newQuote = {
+      id: Date.now(),
+      viaticos, insumos, refacciones, otros, metadata
+    };
+    const updated = [newQuote, ...savedQuotes];
+    setSavedQuotes(updated);
+    localStorage.setItem('cominsa_quotes', JSON.stringify(updated));
+    showNotif('Cotizaci¢n guardada localmente');
+  };
+
+  const handleLoad = (quote) => {
+    setViaticos(quote.viaticos || INITIAL_VIATICOS);
+    setInsumos(quote.insumos || []);
+    setRefacciones(quote.refacciones || []);
+    setOtros(quote.otros || []);
+    setMetadata(quote.metadata);
+    setShowOpenModal(false);
+    showNotif('Cotizaci¢n cargada correctamente');
+  };
+
+  const deleteSaved = (id, e) => {
+    e.stopPropagation();
+    const updated = savedQuotes.filter(q => q.id !== id);
+    setSavedQuotes(updated);
+    localStorage.setItem('cominsa_quotes', JSON.stringify(updated));
+  };
+
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => setMetadata({ ...metadata, equipoFoto: reader.result });
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // --- C?LCULOS ---
+  const sectionTotal = (items) => items.reduce((acc, item) => acc + (Number(item.costo) * Number(item.cantidad)), 0);
+
+  const totals = useMemo(() => {
+    const sub = sectionTotal(viaticos) + sectionTotal(insumos) + sectionTotal(refacciones) + sectionTotal(otros);
+    const iva = sub * 0.16;
+    return { subtotal: sub, iva, total: sub + iva };
+  }, [viaticos, insumos, refacciones, otros]);
+
+  return (
+    <div className="min-h-screen bg-slate-50 p-4 md:p-6 print:bg-white print:p-0">
+      <div className="max-w-5xl mx-auto relative">
+        
+        {notification && (
+          <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-2 rounded-lg shadow-lg text-white text-sm font-medium animate-bounce ${notification.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'}`}>
+            {notification.type === 'error' ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
+            {notification.msg}
+          </div>
+        )}
+
+        {/* Cabecera con LOGO */}
+        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 print:mb-4">
+          <div className="h-20 w-56 flex items-center bg-white p-2 rounded border border-slate-100 print:border-none print:p-0">
+            {!logoError ? (
+              <img 
+                src="cominsa-negro-700px (1).png" 
+                alt="COMINSA" 
+                className="max-h-full max-w-full object-contain" 
+                onError={() => setLogoError(true)} 
+              />
+            ) : (
+              <div className="text-3xl font-black italic tracking-tighter text-slate-900 border-b-4 border-blue-600">
+                COMINSA
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-wrap justify-center gap-2 print:hidden">
+            <button onClick={handleNew} className="flex items-center gap-2 bg-slate-800 px-4 py-2 rounded-lg text-xs font-bold text-white hover:bg-slate-900 transition-all shadow-sm">
+              <FilePlus size={16} /> NUEVO
+            </button>
+            <button onClick={() => setShowOpenModal(true)} className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm">
+              <FolderOpen size={16} /> ABRIR
+            </button>
+            <button onClick={handleSave} className="flex items-center gap-2 bg-emerald-600 px-4 py-2 rounded-lg text-xs font-bold text-white hover:bg-emerald-700 transition-all shadow-sm">
+              <Save size={16} /> GUARDAR
+            </button>
+            <button onClick={() => window.print()} className="flex items-center gap-2 bg-blue-600 px-4 py-2 rounded-lg text-xs font-bold text-white hover:bg-blue-700 transition-all shadow-md">
+              <Printer size={16} /> IMPRIMIR PDF
+            </button>
+          </div>
+
+          <div className="text-right">
+            <p className="text-sm font-bold text-blue-600 font-mono">{metadata.folio}</p>
+            <p className="text-[10px] text-slate-400 uppercase font-bold">{metadata.fecha}</p>
+          </div>
+        </div>
+
+        {/* Info Cliente */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4 print:mb-2">
+          {[
+            {label: 'cliente', value: 'cliente', icon: User},
+            {label: 'proyecto', value: 'proyecto', icon: FileText},
+            {label: 'Atenci¢n a', value: 'atencion', icon: Info}
+          ].map((f) => (
+            <div key={f.value} className="bg-white p-3 rounded-lg border border-slate-200 print:border-slate-300">
+              <label className="text-[9px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1"><f.icon size={10}/> {f.label}</label>
+              <input type="text" className="w-full text-xs font-bold text-slate-800 border-none p-0 bg-transparent focus:ring-0" 
+                value={metadata[f.value]} onChange={(e) => setMetadata({...metadata, [f.value]: e.target.value})} placeholder="..." />
+            </div>
+          ))}
+        </div>
+
+        {/* Equipo y Foto */}
+        <div className="bg-white p-4 rounded-xl border border-slate-200 mb-4 print:border-slate-300">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+            <div className="md:col-span-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="col-span-full mb-1">
+                <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-2">
+                  <Settings size={12} /> Datos del Equipo
+                </h3>
+              </div>
+              {['equipoNombre', 'equipoModelo', 'equipoSerie'].map((f) => (
+                <div key={f}>
+                  <label className="text-[9px] font-bold text-slate-400 uppercase block mb-1">{f.replace('equipo', '')}</label>
+                  <input type="text" className="w-full text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded px-2 py-1.5 print:bg-transparent print:border-none print:p-0"
+                    value={metadata[f]} onChange={(e) => setMetadata({...metadata, [f]: e.target.value})} placeholder="..." />
+                </div>
+              ))}
+            </div>
+            
+            <div className="md:col-span-4">
+               <label className="text-[9px] font-bold text-slate-400 uppercase block mb-1">Evidencia Fotogr†fica</label>
+               <div className="relative group cursor-pointer border-2 border-dashed border-slate-200 rounded-lg h-24 overflow-hidden flex items-center justify-center bg-slate-50 print:h-32 print:border-solid print:border print:bg-transparent"
+                 onClick={() => !metadata.equipoFoto && fileInputRef.current.click()}>
+                  {metadata.equipoFoto ? (
+                    <>
+                      <img src={metadata.equipoFoto} alt="Equipo" className="w-full h-full object-cover" />
+                      <button onClick={(e) => {e.stopPropagation(); setMetadata({...metadata, equipoFoto: null})}} 
+                        className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity print:hidden">
+                        <X size={12} />
+                      </button>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center gap-1 text-slate-400 group-hover:text-blue-500 transition-colors">
+                      <Camera size={20} />
+                      <span className="text-[8px] font-bold uppercase tracking-tighter">Subir Foto</span>
+                    </div>
+                  )}
+                  <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handlePhotoUpload} />
+               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Descripci¢n */}
+        <div className="bg-white p-4 rounded-xl border border-slate-200 mb-6 print:border-slate-300">
+          <div className="flex items-center gap-2 mb-2">
+            <ClipboardList size={14} className="text-blue-600 print:hidden" />
+            <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-widest">
+              Descripci¢n del Trabajo a Realizar
+            </h3>
+          </div>
+          <textarea 
+            className="w-full text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-lg p-3 min-h-[80px] focus:ring-1 focus:ring-blue-500 outline-none resize-none print:bg-transparent print:border-none print:p-0 print:min-h-0"
+            placeholder="Describa el servicio..."
+            value={metadata.descripcionTrabajo}
+            onChange={(e) => setMetadata({...metadata, descripcionTrabajo: e.target.value})}
+          />
+        </div>
+
+        {/* Secciones de Tablas */}
+        <div className="space-y-4">
+          <TableSection title="I. Vi†ticos" icon={Truck} items={viaticos} setter={setViaticos} themeColor="bg-amber-600" />
+          <TableSection title="II. Insumos" icon={Package} items={insumos} setter={setInsumos} themeColor="bg-emerald-600" />
+          <TableSection title="III. Refacciones" icon={Wrench} items={refacciones} setter={setRefacciones} themeColor="bg-indigo-600" showPartNumber={true} />
+          <TableSection title="IV. Otros" icon={MoreHorizontal} items={otros} setter={setOtros} themeColor="bg-slate-600" />
+        </div>
+
+        {/* Totales */}
+        <div className="mt-8 flex justify-end">
+          <div className="w-full md:w-72 bg-slate-900 text-white rounded-xl overflow-hidden print:text-slate-900 print:bg-white print:border print:border-slate-300">
+            <div className="p-4 space-y-2">
+              <div className="flex justify-between text-[10px] text-slate-400 print:text-slate-500">
+                <span className="font-bold">SUBTOTAL NETO</span>
+                <span className="font-mono text-white print:text-slate-900">${totals.subtotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex justify-between text-[10px] text-slate-400 print:text-slate-500 border-b border-white/10 pb-2 print:border-slate-200">
+                <span className="font-bold">I.V.A. (16%)</span>
+                <span className="font-mono text-white print:text-slate-900">${totals.iva.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex justify-between items-center pt-2">
+                <span className="text-[11px] font-black uppercase">Total Final</span>
+                <span className="text-2xl font-black text-blue-400 print:text-blue-700 font-mono tracking-tighter">
+                  ${totals.total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Firmas */}
+        <div className="hidden print:grid grid-cols-2 gap-20 mt-20 text-center px-12">
+          <div className="border-t border-slate-400 pt-2"><p className="text-[9px] font-bold uppercase tracking-wider">COMINSA - SERVICIO TêCNICO</p></div>
+          <div className="border-t border-slate-400 pt-2"><p className="text-[9px] font-bold uppercase tracking-wider">ACEPTACI?N DEL CLIENTE</p></div>
+        </div>
+
+        {/* Modal Abrir */}
+        {showOpenModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
+              <div className="p-4 bg-slate-50 border-b flex justify-between items-center">
+                <h2 className="font-bold text-slate-700 flex items-center gap-2"><FolderOpen size={18} /> Cotizaciones Guardadas</h2>
+                <button onClick={() => setShowOpenModal(false)} className="p-1 hover:bg-slate-200 rounded-full transition-colors"><X size={20} /></button>
+              </div>
+              <div className="max-h-[400px] overflow-y-auto p-2">
+                {savedQuotes.length === 0 ? (
+                  <div className="p-12 text-center text-slate-400 italic text-sm">Sin archivos guardados.</div>
+                ) : (
+                  savedQuotes.map(q => (
+                    <div key={q.id} onClick={() => handleLoad(q)} className="group flex justify-between items-center p-4 hover:bg-blue-50 rounded-xl cursor-pointer transition-all border-b last:border-0 border-slate-100">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-slate-800 text-sm">{q.metadata.cliente || 'Sin Cliente'}</span>
+                        <span className="text-[9px] text-slate-500 font-medium uppercase">{q.metadata.folio} ? {q.metadata.fecha}</span>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className="font-mono text-xs font-bold text-blue-600">
+                          ${((sectionTotal(q.viaticos) + sectionTotal(q.insumos) + sectionTotal(q.refacciones) + sectionTotal(q.otros)) * 1.16).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                        </span>
+                        <button onClick={(e) => deleteSaved(q.id, e)} className="p-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+};
+
+export default App;
