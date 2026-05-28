@@ -1,0 +1,26 @@
+{
+  "name": "cominsa-expo-2026-frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "latest",
+    "react-dom": "latest",
+    "lucide-react": "latest",
+    "@google/genai": "latest",
+    "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js": "latest",
+    "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js": "latest",
+    "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@vitejs/plugin-react": "latest",
+    "typescript": "latest",
+    "vite": "latest"
+  }
+}
