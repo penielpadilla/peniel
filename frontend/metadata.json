@@ -1,0 +1,7 @@
+{
+  "name": "COMINSA Expo 2026",
+  "description": "Lead capture and AI advisor system for COMINSA at Expo Miners 2026.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
